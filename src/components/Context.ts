@@ -1,16 +1,27 @@
-import { createContext, createElement, useMemo } from 'react';
-import { ReactReduxContextValue } from 'react-redux';
-import StoreSubscription from './utils/StoreSubscription';
-import { useIsomorphicLayoutEffect } from './utils/hooks';
+import {
+  createContext,
+  createElement,
+  useEffect,
+  useMemo,
+  useLayoutEffect,
+} from 'react';
+import StoreSubscription from '../utils/StoreSubscription';
 
-import type { Context as ReactContext, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { Action as BaseAction, AnyAction, Store } from 'redux';
 
-interface ProviderProps<Action extends BaseAction = AnyAction, State = any> {
+interface ProviderProps<State = any, Action extends BaseAction = AnyAction> {
   children: ReactNode | ReactNode[];
   serverState?: State;
   store: Store<State, Action>;
 }
+
+const IS_CLIENT =
+  typeof window !== 'undefined' &&
+  typeof window.document !== 'undefined' &&
+  typeof window.document.createElement !== 'undefined';
+
+const useIsomorphicLayoutEffect = IS_CLIENT ? useLayoutEffect : useEffect;
 
 export type ContextType<State = any, Action extends BaseAction = AnyAction> = {
   getServerState: null | (() => State);
@@ -19,11 +30,6 @@ export type ContextType<State = any, Action extends BaseAction = AnyAction> = {
   subscription: StoreSubscription;
 };
 
-export type ReactReduxContextType<
-  State = any,
-  Action extends BaseAction = AnyAction
-> = ReactContext<ReactReduxContextValue<State, Action>>;
-
 export const Context = createContext<ContextType>({
   getServerState: null,
   id: 0,
@@ -31,15 +37,13 @@ export const Context = createContext<ContextType>({
   subscription: null,
 } as any);
 
-export const ReactReduxContext = Context as unknown as ReactReduxContextType;
-
 export const Consumer = Context.Consumer;
 
 export function Provider<Action extends BaseAction = AnyAction, State = any>({
   children,
   serverState,
   store,
-}: ProviderProps<Action, State>) {
+}: ProviderProps<State, Action>) {
   const context = useMemo<ContextType<State, Action>>(
     () => ({
       getServerState: serverState ? () => serverState : null,

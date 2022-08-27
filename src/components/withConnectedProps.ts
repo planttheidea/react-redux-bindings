@@ -8,12 +8,12 @@ import {
   useRef,
 } from 'react';
 import { bindActionCreators } from 'redux';
-import { useDispatch, useSelector } from './hooks';
-import { isShallowEqual } from './utils/hooks';
+import { useDispatch, useSelector } from '../hooks';
+import { isShallowEqual } from '../utils/equality';
 
 import type { ComponentType } from 'react';
 import type { AnyAction } from 'redux';
-import type { IsEqual, Selector } from './types';
+import type { IsEqual, Selector } from '../types';
 
 interface AnyProps {
   [key: string]: any;

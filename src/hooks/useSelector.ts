@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import { useReduxContext } from './useReduxContext';
-import { isSameValueZeroEqual } from '../utils/hooks';
+import { isSameValueZeroEqual } from '../utils/equality';
 
 import type { Store } from 'redux';
 import type { IsEqual, Selector, SelectorOptions } from '../types';

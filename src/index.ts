@@ -1,4 +1,4 @@
-export * from './Context';
-export * from './batch';
+export * from './components/Context';
+export * from './utils/batch';
 export * from './hooks';
-export * from './withConnectedProps';
+export * from './components/withConnectedProps';

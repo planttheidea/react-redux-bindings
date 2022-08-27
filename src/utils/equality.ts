@@ -1,10 +1,3 @@
-import { useEffect, useLayoutEffect } from 'react';
-
-const IS_CLIENT =
-  typeof window !== 'undefined' &&
-  typeof window.document !== 'undefined' &&
-  typeof window.document.createElement !== 'undefined';
-
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 export const isSameValueZeroEqual: typeof Object.is =
@@ -39,7 +32,3 @@ export function isShallowEqual(a: any, b: any) {
 
   return true;
 }
-
-export const useIsomorphicLayoutEffect = IS_CLIENT
-  ? useLayoutEffect
-  : useEffect;

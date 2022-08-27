@@ -1,5 +1,5 @@
 import { Store } from 'redux';
-import { getBatch } from '../batch';
+import { getBatch } from './batch';
 
 interface Entry {
   n: Entry | null;
