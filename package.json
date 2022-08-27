@@ -1,0 +1,65 @@
+{
+  "author": "planttheidea",
+  "browser": "dist/futz.js",
+  "bugs": {
+    "url": "https://github.com/planttheidea/futz/issues"
+  },
+  "dependencies": {
+    "hoist-non-react-statics": "^3.3.2",
+    "redux": "^4.2.0",
+    "use-sync-external-store": "^1.2.0"
+  },
+  "description": "Write scoped, autoprefixed styles declaratively in React",
+  "devDependencies": {
+    "@babel/cli": "^7.18.10",
+    "@babel/core": "^7.18.10",
+    "@babel/preset-env": "^7.18.10",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.18.6",
+    "@types/eslint": "^8.4.1",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@typescript-eslint/eslint-plugin": "^5.33.1",
+    "@typescript-eslint/parser": "^5.33.1",
+    "babel-loader": "^8.2.5",
+    "eslint": "^8.22.0",
+    "eslint-plugin-react": "^7.30.1",
+    "eslint-webpack-plugin": "^3.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^8.0.2",
+    "typescript": "^4.7.4",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.10.0"
+  },
+  "homepage": "https://github.com/planttheidea/futz#readme",
+  "keywords": [
+    "react",
+    "style",
+    "css",
+    "css-modules",
+    "postcss"
+  ],
+  "license": "MIT",
+  "main": "dist/futz.cjs.js",
+  "module": "dist/futz.esm.js",
+  "name": "futz",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/planttheidea/futz.git"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=development webpack-dev-server",
+    "lint": "NODE_ENV=test eslint src",
+    "lint:fix": "NODE_ENV=test eslint src --fix",
+    "start": "npm run dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "version": "3.0.0"
+}
