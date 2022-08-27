@@ -217,6 +217,12 @@ export default function App() {
     console.log(ref.current);
   });
 
+  const [limit, setLimit] = useState(5);
+
+  useEffect(() => {
+    setTimeout(() => setLimit(10), 10000);
+  }, []);
+
   return (
     <Provider store={store}>
       <h1>App</h1>
@@ -231,11 +237,11 @@ export default function App() {
 
       <br />
 
-      <Component limit={5} name="Component props only" />
+      <Component limit={limit} name="Component props only" />
 
       <br />
 
-      <ComponentMemo limit={5} name="Component props with React.memo()" />
+      <ComponentMemo limit={limit} name="Component props with React.memo()" />
 
       <br />
 
@@ -247,7 +253,7 @@ export default function App() {
 
       <br />
 
-      <ConnectedComponent limit={5} name="Connected Component" ref={ref} />
+      <ConnectedComponent limit={limit} name="Connected Component" ref={ref} />
 
       <br />
 
