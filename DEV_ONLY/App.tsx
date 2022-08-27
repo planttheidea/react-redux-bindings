@@ -1,4 +1,12 @@
-import React, { memo, useEffect, useReducer, useRef, useState } from 'react';
+import React, {
+  ForwardedRef,
+  memo,
+  Ref,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import { unstable_batchedUpdates } from 'react-dom';
 import { createStore } from 'redux';
 import {
@@ -119,6 +127,16 @@ function Renderer(props: Props & SelectedState) {
   );
 }
 
+const RendererWithRef = React.forwardRef(
+  (props: Props & SelectedState, ref: ForwardedRef<HTMLDivElement>) => (
+    <div ref={ref}>
+      <RenderedChildren {...props} />
+    </div>
+  )
+);
+
+RendererWithRef.displayName = 'RendererWithRef';
+
 function Component(props: Props) {
   const derivedState = useSelector<State, SelectedState>((state) => ({
     count: state.count,
@@ -143,7 +161,7 @@ function ComponentMemo(props: Props) {
 
 const withConnectedProps = createWithConnectedProps<
   State,
-  Props,
+  Props & { ref?: Ref<HTMLDivElement> | null },
   SelectedState
 >({
   getSelectedState: (state, ownProps) => ({
@@ -155,7 +173,7 @@ const withConnectedProps = createWithConnectedProps<
   includeOwnProps: true,
 });
 
-const ConnectedComponent = withConnectedProps(Renderer);
+const ConnectedComponent = withConnectedProps(RendererWithRef);
 
 function TemporarilyDisconnectedComponent(props: Required<Props>) {
   const derivedState = useSelector<State, SelectedState>(
@@ -170,7 +188,8 @@ function TemporarilyDisconnectedComponent(props: Required<Props>) {
   return <RendererMemo {...props} {...derivedState} />;
 }
 
-const TemporarilyDisconnectedConnectedComponent = withConnectedProps(Renderer);
+const TemporarilyDisconnectedConnectedComponent =
+  withConnectedProps(RendererWithRef);
 
 export default function App() {
   const [, forceUpdate] = useReducer((state) => !state, false);
@@ -192,7 +211,7 @@ export default function App() {
     setTimeout(() => setShouldListenForStateChanges(true), 3000);
   }, []);
 
-  const ref = useRef();
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log(ref.current);
@@ -228,7 +247,7 @@ export default function App() {
 
       <br />
 
-      <ConnectedComponent limit={5} name="Connected Component" />
+      <ConnectedComponent limit={5} name="Connected Component" ref={ref} />
 
       <br />
 

@@ -1,5 +1,12 @@
 import hoistNonReactStatics from 'hoist-non-react-statics';
-import { createElement, memo, useEffect, useMemo, useRef } from 'react';
+import {
+  createElement,
+  forwardRef as forwardReactRef,
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from './hooks';
 import { isShallowEqual } from './utils/hooks';
@@ -249,27 +256,33 @@ function createUseConnectedProps<
       [shouldUpdate]
     );
 
+    const [ref, ownProps] = useMemo<[any, OwnProps]>(() => {
+      const { __internalRef = null, ...ownProps } = props;
+
+      return [__internalRef, ownProps as OwnProps];
+    }, [props]);
+
     const selectedStateProps = useSelectedState<
       SelectedStateProps,
       State,
       OwnProps
-    >(normalizedOptions, props);
+    >(normalizedOptions, ownProps);
     const actionCreatorProps: ActionDispatchers<ActionCreators> =
-      useActionCreators(actionCreators!, props);
+      useActionCreators(actionCreators!, ownProps);
     const mergedConnectedProps = useMergeConnectedProps<
       SelectedStateProps,
       ActionDispatchers<ActionCreators>,
       OwnProps,
       MergedProps
     >(
-      props,
+      ownProps,
       actionCreatorProps,
       selectedStateProps,
       mergeConnectedProps,
       areMergedPropsEqual
     );
 
-    return mergedConnectedProps;
+    return [ref, mergedConnectedProps];
   };
 }
 
@@ -309,18 +322,39 @@ export function createWithConnectedProps<
       areOwnPropsEqual
     ) as unknown as ComponentType<MergedProps>;
 
-    function Connected(props: OwnProps) {
-      const connectedProps = useConnectedProps(props);
+    const Connected: any = function Connected(props: OwnProps) {
+      const [ref, connectedProps] = useConnectedProps(props);
 
-      return createElement(Memoized, connectedProps);
-    }
-
-    hoistNonReactStatics(Connected, Component);
+      return useMemo(
+        () =>
+          createElement(Memoized, Object.assign({}, connectedProps, { ref })),
+        [ref, connectedProps]
+      );
+    };
 
     Connected.displayName = `Connected(${
       Component.displayName || Component.name || 'Anonymous'
     })`;
 
-    return Connected;
+    if (options.forwardRef) {
+      const ForwardedConnected = forwardReactRef(
+        (props: OwnProps, ref: any) => {
+          return useMemo(
+            () =>
+              createElement(
+                Connected,
+                Object.assign({}, props, { __internalRef: ref })
+              ),
+            [props, ref]
+          );
+        }
+      ) as unknown as ComponentType<OwnProps>;
+
+      ForwardedConnected.displayName = Connected.displayName;
+
+      return hoistNonReactStatics(ForwardedConnected, Component);
+    }
+
+    return hoistNonReactStatics(Connected, Component);
   };
 }
