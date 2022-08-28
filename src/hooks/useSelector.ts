@@ -18,7 +18,7 @@ interface SelectorInstance<State, SelectedState> {
   /** "h"as a derived state value */
   h: boolean;
   /** "i"s the selected state equal to previous */
-  i: (a: SelectedState, b: SelectedState) => boolean;
+  i: IsEqual<SelectedState>;
   /** "l"istening for state updates */
   l: boolean;
   /** "s"elector of state */
