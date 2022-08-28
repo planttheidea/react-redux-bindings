@@ -1,8 +1,8 @@
 {
   "author": "planttheidea",
-  "browser": "dist/futz.js",
+  "browser": "dist/react-redux-bindings.js",
   "bugs": {
-    "url": "https://github.com/planttheidea/futz/issues"
+    "url": "https://github.com/planttheidea/react-redux-bindings/issues"
   },
   "dependencies": {
     "hoist-non-react-statics": "^3.3.2",
@@ -16,6 +16,9 @@
     "@babel/preset-env": "^7.18.10",
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.18.6",
+    "@rollup/plugin-babel": "5.3.1",
+    "@rollup/plugin-commonjs": "22.0.2",
+    "@rollup/plugin-node-resolve": "13.3.0",
     "@types/eslint": "^8.4.1",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
@@ -29,12 +32,14 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.0.2",
+    "rollup": "2.78.1",
+    "rollup-plugin-terser": "7.0.2",
     "typescript": "^4.7.4",
     "webpack": "^5.74.0",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.10.0"
   },
-  "homepage": "https://github.com/planttheidea/futz#readme",
+  "homepage": "https://github.com/planttheidea/react-redux-bindings#readme",
   "keywords": [
     "react",
     "style",
@@ -43,18 +48,19 @@
     "postcss"
   ],
   "license": "MIT",
-  "main": "dist/futz.cjs.js",
-  "module": "dist/futz.esm.js",
-  "name": "futz",
+  "main": "dist/react-redux-bindings.cjs.js",
+  "module": "dist/react-redux-bindings.esm.js",
+  "name": "react-redux-bindings",
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/planttheidea/futz.git"
+    "url": "git+https://github.com/planttheidea/react-redux-bindings.git"
   },
   "scripts": {
+    "build": "NODE_ENV=production rollup -c",
     "dev": "NODE_ENV=development webpack-dev-server",
     "lint": "NODE_ENV=test eslint src",
     "lint:fix": "NODE_ENV=test eslint src --fix",
