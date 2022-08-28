@@ -17,6 +17,8 @@ type GetState<SelectedState> = () => SelectedState;
 interface SelectorInstance<State, SelectedState> {
   /** "h"as a derived state value */
   h: boolean;
+  /** "i"s the selected state equal to previous */
+  i: (a: SelectedState, b: SelectedState) => boolean;
   /** "l"istening for state updates */
   l: boolean;
   /** "s"elector of state */
@@ -28,8 +30,7 @@ interface SelectorInstance<State, SelectedState> {
 function createMemoizedSelector<State, SelectedState>(
   instance: SelectorInstance<State, SelectedState>,
   store: Store<any>,
-  getServerState: null | (() => State),
-  isEqual: IsEqual<SelectedState>
+  getServerState: null | (() => State)
 ): [GetState<SelectedState>, GetState<SelectedState> | undefined] {
   // Track the memoized state using closure variables that are local to this
   // memoized instance of a getSnapshot function. Intentionally not using a
@@ -57,7 +58,7 @@ function createMemoizedSelector<State, SelectedState>(
       if (instance.h) {
         const currentStateProps = instance.v;
 
-        if (isEqual(currentStateProps, nextDerivedState)) {
+        if (instance.i(currentStateProps, nextDerivedState)) {
           return (prevDerivedState = currentStateProps);
         }
       }
@@ -78,7 +79,7 @@ function createMemoizedSelector<State, SelectedState>(
     // has changed. If it hasn't, return the previous selection. That signals
     // to React that the selections are conceptually equal, and we can bail
     // out of rendering.
-    if (isEqual(prevDerivedState, nextDerivedState)) {
+    if (instance.i(prevDerivedState, nextDerivedState)) {
       return prevDerivedState;
     }
 
@@ -96,14 +97,30 @@ function createMemoizedSelector<State, SelectedState>(
 }
 
 function useInstance<State, SelectedState>(
-  selector: Selector<State, SelectedState>
+  selector: Selector<State, SelectedState>,
+  isEqual: IsEqual<SelectedState>,
+  shouldUpdateWhenStateChanges: boolean
 ): MutableRefObject<SelectorInstance<State, SelectedState>> {
   const instance = useRef<SelectorInstance<State, SelectedState>>();
+
   if (instance.current) {
-    instance.current.s = selector;
+    const mutableInstance = instance.current;
+
+    mutableInstance.i = isEqual;
+    mutableInstance.s = selector;
+
+    // If starting to listen when not listening prior, eagerly apply the changes to ensure
+    // the render immediately catches the latest state values.
+    // NOTE: when the opposite is true (stopping listen when listening prior), we wait until
+    // after the render has occurred to ensure that the update occurs with the most recent state
+    // value before stopping.
+    if (!mutableInstance.l && shouldUpdateWhenStateChanges) {
+      mutableInstance.l = true;
+    }
   } else {
     instance.current = {
       h: false,
+      i: isEqual,
       l: true,
       s: selector,
       v: null as unknown as SelectedState,
@@ -120,7 +137,7 @@ export function useSelector<State = any, SelectedState = any>(
     shouldUpdateWhenStateChanges = true,
   }: SelectorOptions<SelectedState> = {}
 ) {
-  const instance = useInstance(selector);
+  const instance = useInstance(selector, isEqual, shouldUpdateWhenStateChanges);
 
   const { getServerState, store, subscription } = useReduxContext();
 
@@ -129,10 +146,9 @@ export function useSelector<State = any, SelectedState = any>(
       createMemoizedSelector<State, SelectedState>(
         instance.current!,
         store,
-        getServerState,
-        isEqual
+        getServerState
       ),
-    [store, getServerState, isEqual]
+    [store, getServerState]
   );
 
   const selectedState = useSyncExternalStore(
