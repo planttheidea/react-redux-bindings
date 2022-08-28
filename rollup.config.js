@@ -1,4 +1,5 @@
 import commonjs from '@rollup/plugin-commonjs';
+import replace from '@rollup/plugin-replace';
 import resolve from '@rollup/plugin-node-resolve';
 import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
@@ -32,6 +33,9 @@ const DEFAULT_CONFIG = {
     { ...DEFAULT_OUTPUT, file: pkg.module, format: 'es' },
   ],
   plugins: [
+    replace({
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    }),
     commonjs({ include: /use-sync-external-store/ }),
     resolve({
       extensions: EXTENSIONS,
