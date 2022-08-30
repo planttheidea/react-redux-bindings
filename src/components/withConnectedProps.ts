@@ -78,6 +78,14 @@ interface Options<
 
 const EMPTY_PROPS = {};
 
+function defaultMergeProps(
+  ownProps: any,
+  actionCreators: any,
+  selectedStateProps: any
+) {
+  return Object.assign({}, ownProps, actionCreators, selectedStateProps);
+}
+
 function useMemoizedProps<Props>(
   nextProps: Props,
   isEqual: IsEqual<Props>
@@ -92,6 +100,22 @@ function useMemoizedProps<Props>(
   }, [props]);
 
   return props;
+}
+
+function useNormalizedOptions<
+  OriginalOptions extends Options<any, any, any, any, any>
+>(options: OriginalOptions, shouldUpdateFromProps: boolean | undefined) {
+  const normalizedOptions = useMemo(
+    () =>
+      Object.assign({}, options, {
+        shouldUpdateWhenStateChanges:
+          options.shouldUpdateWhenStateChanges &&
+          shouldUpdateFromProps !== false,
+      }),
+    [shouldUpdateFromProps]
+  );
+
+  return normalizedOptions;
 }
 
 function useSelectedStatePropsNone<SelectedStateProps>() {
@@ -218,14 +242,6 @@ function useMergeConnectedProps<
   return mergedConnectedProps;
 }
 
-function defaultMergeProps(
-  ownProps: any,
-  actionCreators: any,
-  selectedStateProps: any
-) {
-  return Object.assign({}, ownProps, actionCreators, selectedStateProps);
-}
-
 function createUseConnectedProps<
   State,
   OwnProps extends AnyProps,
@@ -244,7 +260,13 @@ function createUseConnectedProps<
   includeOwnProps = false,
   shouldUpdateWhenStateChanges = !!stateSelector,
 }: Options<State, SelectedStateProps, ActionCreators, OwnProps, MergedProps>) {
-  const options = {
+  const options: Options<
+    State,
+    SelectedStateProps,
+    ActionCreators,
+    OwnProps,
+    MergedProps
+  > = {
     actionCreators,
     areMergedPropsEqual,
     areStatePropsEqual,
@@ -257,23 +279,15 @@ function createUseConnectedProps<
   const useActionCreators: any = getUseActionCreators(options);
 
   return function useConnectedProps(props: OwnProps) {
-    const shouldUpdate =
-      shouldUpdateWhenStateChanges &&
-      props.shouldUpdateWhenStateChanges !== false;
-
-    const normalizedOptions = useMemo(
-      () =>
-        Object.assign({}, options, {
-          shouldUpdateWhenStateChanges: shouldUpdate,
-        }),
-      [shouldUpdate]
-    );
-
     const [ref, remainingProps] = useMemo<[any, OwnProps]>(() => {
       const { __internalRef = null, ...remainingProps } = props;
 
       return [__internalRef, remainingProps as OwnProps];
     }, [props]);
+    const normalizedOptions = useNormalizedOptions(
+      options,
+      props.shouldUpdateWhenStateChanges
+    );
 
     const ownProps = useMemoizedProps<OwnProps>(
       remainingProps,
