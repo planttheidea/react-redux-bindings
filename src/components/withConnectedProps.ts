@@ -7,13 +7,18 @@ import {
   useRef,
 } from 'react';
 import { bindActionCreators } from 'redux';
-import { useDispatch, useSelector } from '../hooks';
+import { useDispatch } from '../hooks';
+import { useReduxContext } from '../hooks/useReduxContext';
+import { useSelectedState } from '../hooks/useSelector';
+import { Context, getNextId } from './Context';
+import StoreSubscription from '../utils/StoreSubscription';
 import { isShallowEqual } from '../utils/equality';
 
 import type { ComponentType } from 'react';
 import type { AnyAction } from 'redux';
 import type { MergeN } from 'ts-essentials';
 import type { IsEqual, Selector } from '../types';
+import type { ContextType } from './Context';
 
 interface AnyProps {
   [key: string]: any;
@@ -121,22 +126,36 @@ function useNormalizedOptions<
 function useSelectedStatePropsNone<SelectedStateProps>() {
   return EMPTY_PROPS as SelectedStateProps;
 }
-function useSelectedStatePropsOnly<SelectedStateProps, State>(
-  options: Options<any, any, any, any, any>
+function useSelectedStatePropsOnly<SelectedStateProps, State, OwnProps>(
+  options: Options<any, any, any, any, any>,
+  ownProps: OwnProps,
+  childContext: ContextType
 ) {
-  return useSelector(
+  return useSelectedState(
     options.stateSelector as Selector<State, SelectedStateProps>,
-    options
+    childContext.store,
+    childContext.getServerState,
+    childContext.subscription,
+    options.areStatePropsEqual!,
+    options.shouldUpdateWhenStateChanges!
   );
 }
 function useSelectedStatePropsWithOwnProps<SelectedStateProps, State, OwnProps>(
   options: Options<any, any, any, any, any>,
-  ownProps: OwnProps
+  ownProps: OwnProps,
+  childContext: ContextType
 ) {
   const composedSelector: Selector<State, SelectedStateProps> = (state) =>
     options.stateSelector!(state, ownProps);
 
-  return useSelector(composedSelector, options);
+  return useSelectedState(
+    composedSelector,
+    childContext.store,
+    childContext.getServerState,
+    childContext.subscription,
+    options.areStatePropsEqual!,
+    options.shouldUpdateWhenStateChanges!
+  );
 }
 function getUseSelectedStateProps(options: Options<any, any, any, any, any>) {
   if (options.stateSelector) {
@@ -275,10 +294,13 @@ function createUseConnectedProps<
     includeOwnProps,
     shouldUpdateWhenStateChanges,
   };
-  const useSelectedState = getUseSelectedStateProps(options);
+  const useSelectedStateProps = getUseSelectedStateProps(options);
   const useActionCreators: any = getUseActionCreators(options);
 
-  return function useConnectedProps(props: OwnProps) {
+  return function useConnectedProps(
+    props: OwnProps,
+    context: ContextType
+  ): [any, MergedProps, ContextType] {
     const [ref, remainingProps] = useMemo<[any, OwnProps]>(() => {
       const { __internalRef = null, ...remainingProps } = props;
 
@@ -289,15 +311,29 @@ function createUseConnectedProps<
       props.shouldUpdateWhenStateChanges
     );
 
+    const childContext = useMemo(
+      () =>
+        shouldUpdateWhenStateChanges
+          ? Object.assign({}, context, {
+              id: getNextId(),
+              subscription: new StoreSubscription(
+                context.store,
+                context.subscription
+              ),
+            })
+          : context,
+      [context]
+    );
+
     const ownProps = useMemoizedProps<OwnProps>(
       remainingProps,
       areOwnPropsEqual
     );
-    const selectedStateProps = useSelectedState<
+    const selectedStateProps = useSelectedStateProps<
       SelectedStateProps,
       State,
       OwnProps
-    >(normalizedOptions, ownProps);
+    >(normalizedOptions, ownProps, childContext);
     const actionCreatorProps: ActionDispatchers<ActionCreators> =
       useActionCreators(actionCreators!, ownProps);
     const mergedConnectedProps = useMergeConnectedProps<
@@ -313,7 +349,7 @@ function createUseConnectedProps<
       areMergedPropsEqual
     );
 
-    return [ref, mergedConnectedProps];
+    return [ref, mergedConnectedProps, childContext];
   };
 }
 
@@ -346,12 +382,28 @@ export function createWithConnectedProps<
     Component: ComponentType<MergedProps>
   ): ComponentType<OwnProps> {
     const Connected: any = function Connected(props: OwnProps) {
-      const [ref, connectedProps] = useConnectedProps(props);
+      const context = useReduxContext();
+      const [ref, connectedProps, childContext] = useConnectedProps(
+        props,
+        context
+      );
+
+      const renderedComponent = useMemo(
+        () =>
+          createElement(Component, Object.assign({}, connectedProps, { ref })),
+        [connectedProps, ref]
+      );
 
       return useMemo(
         () =>
-          createElement(Component, Object.assign({}, connectedProps, { ref })),
-        [ref, connectedProps]
+          context === childContext
+            ? renderedComponent
+            : createElement(
+                Context.Provider,
+                { value: childContext },
+                renderedComponent
+              ),
+        [renderedComponent, context, childContext]
       );
     };
 

@@ -30,9 +30,15 @@ export type ContextType<State = any, Action extends BaseAction = AnyAction> = {
   subscription: StoreSubscription;
 };
 
+let id = 0;
+
+export function getNextId() {
+  return ++id;
+}
+
 export const Context = createContext<ContextType>({
   getServerState: null,
-  id: 0,
+  id,
   store: null,
   subscription: null,
 } as any);

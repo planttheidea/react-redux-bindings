@@ -11,6 +11,7 @@ import { isSameValueZeroEqual } from '../utils/equality';
 
 import type { Store } from 'redux';
 import type { IsEqual, Selector, SelectorOptions } from '../types';
+import { ContextType } from '../components/Context';
 
 type GetState<SelectedState> = () => SelectedState;
 
@@ -130,17 +131,15 @@ function useInstance<State, SelectedState>(
   return instance as MutableRefObject<SelectorInstance<State, SelectedState>>;
 }
 
-export function useSelector<State = any, SelectedState = any>(
+export function useSelectedState<State, SelectedState>(
   selector: Selector<State, SelectedState>,
-  {
-    isEqual = isSameValueZeroEqual,
-    shouldUpdateWhenStateChanges = true,
-  }: SelectorOptions<SelectedState> = {}
-) {
+  store: ContextType['store'],
+  getServerState: ContextType['getServerState'],
+  subscription: ContextType['subscription'],
+  isEqual: IsEqual<SelectedState>,
+  shouldUpdateWhenStateChanges: boolean
+): SelectedState {
   const instance = useInstance(selector, isEqual, shouldUpdateWhenStateChanges);
-
-  const { getServerState, store, subscription } = useReduxContext();
-
   const [getDerivedState, getServerDerivedState] = useMemo(
     () =>
       createMemoizedSelector<State, SelectedState>(
@@ -168,4 +167,23 @@ export function useSelector<State = any, SelectedState = any>(
   useDebugValue(selectedState);
 
   return selectedState;
+}
+
+export function useSelector<State = any, SelectedState = any>(
+  selector: Selector<State, SelectedState>,
+  {
+    isEqual = isSameValueZeroEqual,
+    shouldUpdateWhenStateChanges = true,
+  }: SelectorOptions<SelectedState> = {}
+) {
+  const context = useReduxContext();
+
+  return useSelectedState<State, SelectedState>(
+    selector,
+    context.store,
+    context.getServerState,
+    context.subscription,
+    isEqual,
+    shouldUpdateWhenStateChanges
+  );
 }
