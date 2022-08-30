@@ -14,12 +14,11 @@ const EXTENSIONS = ['.js', '.ts', '.tsx'];
 
 const DEFAULT_OUTPUT = {
   exports: 'named',
-  globals: {
-    'hoist-non-react-statics': 'hoistNonReactStatics',
-    react: 'React',
-    redux: 'Redux',
-    'use-sync-external-store': 'useSyncExternalStore',
-  },
+  globals: EXTERNALS.reduce((globals, external) => {
+    globals[external] = external;
+
+    return globals;
+  }, {}),
   name: pkg.name,
   sourcemap: true,
 };
@@ -35,12 +34,13 @@ const DEFAULT_CONFIG = {
   plugins: [
     replace({
       'process.env.NODE_ENV': JSON.stringify('production'),
+      preventAssignment: true,
     }),
-    commonjs({ include: /use-sync-external-store/ }),
     resolve({
       extensions: EXTENSIONS,
       mainFields: ['module', 'jsnext:main', 'main'],
     }),
+    commonjs({ include: /use-sync-external-store/ }),
     babel({
       babelHelpers: 'bundled',
       exclude: 'node_modules/**',
