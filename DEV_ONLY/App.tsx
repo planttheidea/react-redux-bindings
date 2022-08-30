@@ -2,6 +2,7 @@ import React, {
   ForwardedRef,
   memo,
   Ref,
+  useCallback,
   useEffect,
   useReducer,
   useRef,
@@ -77,9 +78,16 @@ function SelectorOnly(props: SelectorOnlyProps) {
   );
 }
 
-function Buttons() {
+function Buttons(props: {
+  disconnected: boolean;
+  setDisconnected: (disconnected: boolean) => void;
+}) {
   const decrement = useActionCreator(() => ({ type: 'DECREMENT' }));
   const increment = useActionCreator(() => ({ type: 'INCREMENT' }));
+  const setDisconnected = useCallback(
+    () => props.setDisconnected(!props.disconnected),
+    [props.disconnected, props.setDisconnected]
+  );
 
   return (
     <div>
@@ -88,6 +96,9 @@ function Buttons() {
       </button>
       <button onClick={decrement} type="button">
         Decrement
+      </button>
+      <button onClick={setDisconnected} type="button">
+        Disconnect
       </button>
     </div>
   );
@@ -137,12 +148,17 @@ const RendererWithRef = React.forwardRef(
 
 RendererWithRef.displayName = 'RendererWithRef';
 
-function Component(props: Props) {
-  const derivedState = useSelector<State, SelectedState>((state) => ({
-    count: state.count,
-    isEven: state.count % 2 === 0,
-    limited: Math.min(state.count, props.limit),
-  }));
+function Component(props: Props & { disconnected: boolean }) {
+  const derivedState = useSelector<State, SelectedState>(
+    (state) => ({
+      count: state.count,
+      isEven: state.count % 2 === 0,
+      limited: Math.min(state.count, props.limit),
+    }),
+    {
+      shouldUpdateWhenStateChanges: !props.disconnected,
+    }
+  );
 
   return <Renderer {...props} {...derivedState} />;
 }
@@ -223,11 +239,13 @@ export default function App() {
     setTimeout(() => setLimit(10), 10000);
   }, []);
 
+  const [disconnected, setDisconnected] = useState(false);
+
   return (
     <Provider store={store}>
       <h1>App</h1>
 
-      <Buttons />
+      <Buttons disconnected={disconnected} setDisconnected={setDisconnected} />
 
       <br />
 
@@ -237,7 +255,11 @@ export default function App() {
 
       <br />
 
-      <Component limit={limit} name="Component props only" />
+      <Component
+        limit={limit}
+        name="Component props only"
+        disconnected={disconnected}
+      />
 
       <br />
 
