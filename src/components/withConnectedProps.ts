@@ -2,7 +2,6 @@ import hoistNonReactStatics from 'hoist-non-react-statics';
 import {
   createElement,
   forwardRef as forwardReactRef,
-  memo,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +12,7 @@ import { isShallowEqual } from '../utils/equality';
 
 import type { ComponentType } from 'react';
 import type { AnyAction } from 'redux';
+import type { MergeN } from 'ts-essentials';
 import type { IsEqual, Selector } from '../types';
 
 interface AnyProps {
@@ -62,9 +62,6 @@ interface Options<
   areOwnPropsEqual?: IsEqual<OwnProps>;
   areMergedPropsEqual?: IsEqual<MergedProps>;
   areStatePropsEqual?: IsEqual<SelectedStateProps>;
-  getSelectedState?:
-    | Selector<State, SelectedStateProps>
-    | SelectorWithOwnProps<State, OwnProps, SelectedStateProps>;
   mergeConnectedProps?: MergeProps<
     SelectedStateProps,
     ActionDispatchers<ActionCreators>,
@@ -74,16 +71,27 @@ interface Options<
   forwardRef?: boolean;
   includeOwnProps?: boolean;
   shouldUpdateWhenStateChanges?: boolean;
+  stateSelector?:
+    | Selector<State, SelectedStateProps>
+    | SelectorWithOwnProps<State, OwnProps, SelectedStateProps>;
 }
 
 const EMPTY_PROPS = {};
 
-function defaultMergeProps(
-  ownProps: any,
-  actionCreators: any,
-  selectedStateProps: any
-) {
-  return Object.assign({}, ownProps, actionCreators, selectedStateProps);
+function useMemoizedProps<Props>(
+  nextProps: Props,
+  isEqual: IsEqual<Props>
+): Props {
+  const prevProps = useRef<Props>(EMPTY_PROPS as Props);
+  const props = isEqual(prevProps.current, nextProps)
+    ? prevProps.current
+    : nextProps;
+
+  useEffect(() => {
+    prevProps.current = props;
+  }, [props]);
+
+  return props;
 }
 
 function useSelectedStatePropsNone<SelectedStateProps>() {
@@ -93,7 +101,7 @@ function useSelectedStatePropsOnly<SelectedStateProps, State>(
   options: Options<any, any, any, any, any>
 ) {
   return useSelector(
-    options.getSelectedState as Selector<State, SelectedStateProps>,
+    options.stateSelector as Selector<State, SelectedStateProps>,
     options
   );
 }
@@ -102,12 +110,12 @@ function useSelectedStatePropsWithOwnProps<SelectedStateProps, State, OwnProps>(
   ownProps: OwnProps
 ) {
   const composedSelector: Selector<State, SelectedStateProps> = (state) =>
-    options.getSelectedState!(state, ownProps);
+    options.stateSelector!(state, ownProps);
 
   return useSelector(composedSelector, options);
 }
 function getUseSelectedStateProps(options: Options<any, any, any, any, any>) {
-  if (options.getSelectedState) {
+  if (options.stateSelector) {
     return options.includeOwnProps
       ? useSelectedStatePropsWithOwnProps
       : useSelectedStatePropsOnly;
@@ -197,21 +205,25 @@ function useMergeConnectedProps<
   >,
   isEqual: IsEqual<MergedProps>
 ) {
-  const prevMergedProps = useRef<MergedProps>(EMPTY_PROPS as MergedProps);
   const nextMergedProps = mergeProps(
     props,
     actionDispatcherProps,
     selectedStateProps
   );
-  const mergedConnectedProps = isEqual(prevMergedProps.current, nextMergedProps)
-    ? prevMergedProps.current
-    : nextMergedProps;
-
-  useEffect(() => {
-    prevMergedProps.current = mergedConnectedProps;
-  }, [mergedConnectedProps]);
+  const mergedConnectedProps = useMemoizedProps<MergedProps>(
+    nextMergedProps,
+    isEqual
+  );
 
   return mergedConnectedProps;
+}
+
+function defaultMergeProps(
+  ownProps: any,
+  actionCreators: any,
+  selectedStateProps: any
+) {
+  return Object.assign({}, ownProps, actionCreators, selectedStateProps);
 }
 
 function createUseConnectedProps<
@@ -219,23 +231,24 @@ function createUseConnectedProps<
   OwnProps extends AnyProps,
   SelectedStateProps extends AnyProps,
   ActionCreators extends AnyActionCreators,
-  MergedProps extends OwnProps &
-    ActionDispatchers<ActionCreators> &
-    SelectedStateProps
+  MergedProps extends MergeN<
+    [OwnProps, ActionDispatchers<ActionCreators>, SelectedStateProps]
+  >
 >({
   actionCreators,
   areMergedPropsEqual = isShallowEqual,
+  areOwnPropsEqual = isShallowEqual,
   areStatePropsEqual = isShallowEqual,
-  getSelectedState,
+  stateSelector,
   mergeConnectedProps = defaultMergeProps,
   includeOwnProps = false,
-  shouldUpdateWhenStateChanges = !!getSelectedState,
+  shouldUpdateWhenStateChanges = !!stateSelector,
 }: Options<State, SelectedStateProps, ActionCreators, OwnProps, MergedProps>) {
   const options = {
     actionCreators,
     areMergedPropsEqual,
     areStatePropsEqual,
-    getSelectedState,
+    stateSelector,
     mergeConnectedProps,
     includeOwnProps,
     shouldUpdateWhenStateChanges,
@@ -256,12 +269,16 @@ function createUseConnectedProps<
       [shouldUpdate]
     );
 
-    const [ref, ownProps] = useMemo<[any, OwnProps]>(() => {
-      const { __internalRef = null, ...ownProps } = props;
+    const [ref, remainingProps] = useMemo<[any, OwnProps]>(() => {
+      const { __internalRef = null, ...remainingProps } = props;
 
-      return [__internalRef, ownProps as OwnProps];
+      return [__internalRef, remainingProps as OwnProps];
     }, [props]);
 
+    const ownProps = useMemoizedProps<OwnProps>(
+      remainingProps,
+      areOwnPropsEqual
+    );
     const selectedStateProps = useSelectedState<
       SelectedStateProps,
       State,
@@ -291,11 +308,9 @@ export function createWithConnectedProps<
   OwnProps extends AnyProps,
   SelectedStateProps extends AnyProps,
   ActionCreators extends AnyActionCreators = {},
-  MergedProps extends OwnProps &
-    ActionDispatchers<ActionCreators> &
-    SelectedStateProps = OwnProps &
-    ActionDispatchers<ActionCreators> &
-    SelectedStateProps
+  MergedProps extends MergeN<
+    [OwnProps, ActionDispatchers<ActionCreators>, SelectedStateProps]
+  > = MergeN<[OwnProps, ActionDispatchers<ActionCreators>, SelectedStateProps]>
 >(
   options: Options<
     State,
@@ -311,23 +326,17 @@ export function createWithConnectedProps<
     MergedProps
   >
 ) {
-  const { areOwnPropsEqual = isShallowEqual } = options;
   const useConnectedProps = createUseConnectedProps(options);
 
   return function withConnectedProps(
     Component: ComponentType<MergedProps>
   ): ComponentType<OwnProps> {
-    const Memoized = memo(
-      Component,
-      areOwnPropsEqual
-    ) as unknown as ComponentType<MergedProps>;
-
     const Connected: any = function Connected(props: OwnProps) {
       const [ref, connectedProps] = useConnectedProps(props);
 
       return useMemo(
         () =>
-          createElement(Memoized, Object.assign({}, connectedProps, { ref })),
+          createElement(Component, Object.assign({}, connectedProps, { ref })),
         [ref, connectedProps]
       );
     };
@@ -338,7 +347,7 @@ export function createWithConnectedProps<
 
     if (options.forwardRef) {
       const ForwardedConnected = forwardReactRef(
-        (props: OwnProps, ref: any) => {
+        (props: OwnProps, ref: any = null) => {
           return useMemo(
             () =>
               createElement(

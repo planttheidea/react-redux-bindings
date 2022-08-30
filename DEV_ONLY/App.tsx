@@ -164,13 +164,13 @@ const withConnectedProps = createWithConnectedProps<
   Props & { ref?: Ref<HTMLDivElement> | null },
   SelectedState
 >({
-  getSelectedState: (state, ownProps) => ({
+  forwardRef: true,
+  includeOwnProps: true,
+  stateSelector: (state, ownProps) => ({
     count: state.count,
     isEven: state.count % 2 === 0,
     limited: Math.min(state.count, ownProps.limit),
   }),
-  forwardRef: true,
-  includeOwnProps: true,
 });
 
 const ConnectedComponent = withConnectedProps(RendererWithRef);
