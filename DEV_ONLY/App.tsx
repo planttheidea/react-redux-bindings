@@ -98,7 +98,7 @@ function Buttons(props: {
         Decrement
       </button>
       <button onClick={setDisconnected} type="button">
-        Disconnect
+        {props.disconnected ? 'Connect' : 'Disconnect'}
       </button>
     </div>
   );

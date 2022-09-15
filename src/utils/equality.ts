@@ -23,7 +23,7 @@ export function isShallowEqual(a: any, b: any) {
   }
 
   for (let index = 0; index < length; ++index) {
-    const key = aKeys[index];
+    const key = aKeys[index]!;
 
     if (!hasOwnProperty.call(b, key) || !isSameValueZeroEqual(a[key], b[key])) {
       return false;

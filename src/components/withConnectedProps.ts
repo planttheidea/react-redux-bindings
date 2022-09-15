@@ -83,12 +83,14 @@ interface Options<
 
 const EMPTY_PROPS = {};
 
+const assign = Object.assign;
+
 function defaultMergeProps(
   ownProps: any,
-  actionCreators: any,
+  actionDispatcherProps: any,
   selectedStateProps: any
 ) {
-  return Object.assign({}, ownProps, actionCreators, selectedStateProps);
+  return assign({}, ownProps, actionDispatcherProps, selectedStateProps);
 }
 
 function useMemoizedProps<Props>(
@@ -112,7 +114,7 @@ function useNormalizedOptions<
 >(options: OriginalOptions, shouldUpdateFromProps: boolean | undefined) {
   const normalizedOptions = useMemo(
     () =>
-      Object.assign({}, options, {
+      assign({}, options, {
         shouldUpdateWhenStateChanges:
           options.shouldUpdateWhenStateChanges &&
           shouldUpdateFromProps !== false,
@@ -128,7 +130,7 @@ function useSelectedStatePropsNone<SelectedStateProps>() {
 }
 function useSelectedStatePropsOnly<SelectedStateProps, State, OwnProps>(
   options: Options<any, any, any, any, any>,
-  ownProps: OwnProps,
+  _ownProps: OwnProps,
   childContext: ContextType
 ) {
   return useSelectedState(
@@ -314,7 +316,7 @@ function createUseConnectedProps<
     const childContext = useMemo(
       () =>
         shouldUpdateWhenStateChanges
-          ? Object.assign({}, context, {
+          ? assign({}, context, {
               id: getNextId(),
               subscription: new StoreSubscription(
                 context.store,
@@ -389,8 +391,7 @@ export function createWithConnectedProps<
       );
 
       const renderedComponent = useMemo(
-        () =>
-          createElement(Component, Object.assign({}, connectedProps, { ref })),
+        () => createElement(Component, assign({}, connectedProps, { ref })),
         [connectedProps, ref]
       );
 
@@ -418,7 +419,7 @@ export function createWithConnectedProps<
             () =>
               createElement(
                 Connected,
-                Object.assign({}, props, { __internalRef: ref })
+                assign({}, props, { __internalRef: ref })
               ),
             [props, ref]
           );

@@ -1,64 +1,48 @@
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 import resolve from '@rollup/plugin-node-resolve';
-import babel from '@rollup/plugin-babel';
+import typescript from '@rollup/plugin-typescript';
 import { terser } from 'rollup-plugin-terser';
+import localTypescript from 'typescript';
 import pkg from './package.json';
 
-const EXTERNALS = [
+const external = [
   ...Object.keys(pkg.dependencies || {}),
   ...Object.keys(pkg.peerDependencies || {}),
 ];
+const globals = external.reduce((globals, external) => {
+  globals[external] = external;
 
-const EXTENSIONS = ['.js', '.ts', '.tsx'];
-
-const DEFAULT_OUTPUT = {
-  exports: 'named',
-  globals: EXTERNALS.reduce((globals, external) => {
-    globals[external] = external;
-
-    return globals;
-  }, {}),
-  name: pkg.name,
-  sourcemap: true,
-};
-
-const DEFAULT_CONFIG = {
-  external: EXTERNALS,
-  input: 'src/index.ts',
-  output: [
-    { ...DEFAULT_OUTPUT, file: pkg.browser, format: 'umd' },
-    { ...DEFAULT_OUTPUT, file: pkg.main, format: 'cjs' },
-    { ...DEFAULT_OUTPUT, file: pkg.module, format: 'es' },
-  ],
-  plugins: [
-    replace({
-      'process.env.NODE_ENV': JSON.stringify('production'),
-      preventAssignment: true,
-    }),
-    resolve({
-      extensions: EXTENSIONS,
-      mainFields: ['module', 'jsnext:main', 'main'],
-    }),
-    commonjs({ include: /use-sync-external-store/ }),
-    babel({
-      babelHelpers: 'bundled',
-      exclude: 'node_modules/**',
-      extensions: EXTENSIONS,
-      include: ['src/**'],
-    }),
-  ],
-};
+  return globals;
+}, {});
 
 export default [
-  DEFAULT_CONFIG,
   {
-    ...DEFAULT_CONFIG,
+    external,
+    input: 'src/index.ts',
     output: {
-      ...DEFAULT_OUTPUT,
-      file: pkg.browser.replace('.js', '.min.js'),
+      exports: 'named',
+      globals,
+      name: pkg.name,
+      sourcemap: true,
+      file: './dist/minified/index.js',
       format: 'umd',
     },
-    plugins: [...DEFAULT_CONFIG.plugins, terser()],
+    plugins: [
+      replace({
+        'process.env.NODE_ENV': JSON.stringify('production'),
+        preventAssignment: true,
+      }),
+      resolve({
+        extensions: ['.js', '.ts', '.tsx'],
+        mainFields: ['module', 'jsnext:main', 'main'],
+      }),
+      commonjs({ include: /use-sync-external-store/ }),
+      typescript({
+        tsconfig: './tsconfig.minified.json',
+        typescript: localTypescript,
+      }),
+      terser(),
+    ],
   },
 ];

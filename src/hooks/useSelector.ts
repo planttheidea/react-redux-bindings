@@ -142,7 +142,7 @@ export function useSelectedState<State, SelectedState>(
   const instance = useInstance(selector, isEqual, shouldUpdateWhenStateChanges);
   const [getDerivedState, getServerDerivedState] = useMemo(
     () =>
-      createMemoizedSelector<State, SelectedState>(
+      /*#__NOINLINE__*/ createMemoizedSelector<State, SelectedState>(
         instance.current!,
         store,
         getServerState

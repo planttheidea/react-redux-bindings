@@ -16,8 +16,11 @@ module.exports = {
     rules: [
       {
         include: [path.resolve(ROOT, 'src'), path.resolve(ROOT, 'DEV_ONLY')],
-        loader: 'babel-loader',
-        test: /\.(js|ts|tsx)$/,
+        loader: 'ts-loader',
+        options: {
+          configFile: 'tsconfig.dev.json',
+        },
+        test: /\.(ts|tsx)$/,
       },
     ],
   },

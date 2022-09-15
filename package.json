@@ -1,6 +1,6 @@
 {
   "author": "planttheidea",
-  "browser": "dist/react-redux-bindings.js",
+  "browser": "dist/umd/index.js",
   "bugs": {
     "url": "https://github.com/planttheidea/react-redux-bindings/issues"
   },
@@ -20,6 +20,7 @@
     "@rollup/plugin-commonjs": "22.0.2",
     "@rollup/plugin-node-resolve": "13.3.0",
     "@rollup/plugin-replace": "^4.0.0",
+    "@rollup/plugin-typescript": "^8.3.4",
     "@types/eslint": "^8.4.1",
     "@types/react": "^18.0.18",
     "@types/react-dom": "^18.0.6",
@@ -36,10 +37,27 @@
     "rollup": "2.78.1",
     "rollup-plugin-terser": "7.0.2",
     "ts-essentials": "^9.3.0",
-    "typescript": "^4.7.4",
+    "ts-loader": "^9.3.1",
+    "typescript": "^4.8.2",
     "webpack": "^5.74.0",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.10.1"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/types/index.d.ts",
+        "default": "./dist/esm/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      },
+      "default": {
+        "types": "./dist/umd/types/index.d.ts",
+        "default": "./dist/umd/index.js"
+      }
+    }
   },
   "homepage": "https://github.com/planttheidea/react-redux-bindings#readme",
   "keywords": [
@@ -50,8 +68,8 @@
     "postcss"
   ],
   "license": "MIT",
-  "main": "dist/react-redux-bindings.cjs.js",
-  "module": "dist/react-redux-bindings.esm.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.mjs",
   "name": "react-redux-bindings",
   "peerDependencies": {
     "react": ">=16.8.0",
@@ -62,10 +80,16 @@
     "url": "git+https://github.com/planttheidea/react-redux-bindings.git"
   },
   "scripts": {
-    "build": "NODE_ENV=production rollup -c",
+    "build": "npm run build:esm && npm run build:cjs && npm run build:umd && npm run build:minified",
+    "build:cjs": "tsc -p ./tsconfig.cjs.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json && mv ./dist/esm/index.js ./dist/esm/index.mjs",
+    "build:minified": "NODE_ENV=production rollup -c",
+    "build:umd": "tsc -p ./tsconfig.umd.json",
+    "clean": "rm -rf dist",
     "dev": "NODE_ENV=development webpack-dev-server",
     "lint": "NODE_ENV=test eslint src",
     "lint:fix": "NODE_ENV=test eslint src --fix",
+    "release:scripts": "npm run clean && npm run lint && npm run typecheck && npm run build",
     "start": "npm run dev",
     "typecheck": "tsc --noEmit"
   },
